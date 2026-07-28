@@ -20,9 +20,12 @@ config:                             # config.pbtxt.jinja template variables
 ```
 
 ```bash
-./deploy.sh deployments/example.yaml [--force] [--copy-mode link|copy|symlink]
+./deploy.sh deployments/example.yaml [--force]
 ./serve.sh deployments/example.yaml   # or: ./serve.sh example  /  ./serve.sh (all staged models)
 ```
+
+`deploy.sh` uses whatever python environment is currently active (requires `pyyaml` and
+`jinja2`), so activate your env first.
 
 `deploy.sh` produces a directly mountable repository:
 
@@ -35,8 +38,8 @@ model_repository/example/
     └── model/     # copied from weight_dir
 ```
 
-Weights and the venv tarball are hardlinked by default (`--copy-mode link`, falls back to a real
-copy across filesystems); use `--copy-mode copy` for an independent copy.
+Weights and the venv tarball are copied, so the staged repository is fully self-contained and
+independent of the source files.
 
 `serve.sh` mounts `model_repository/` at `/models` **read-only**. tritonserver runs as root in the
 container, so a writable mount leaves root-owned files (`__pycache__`) in the host tree; the
@@ -48,7 +51,6 @@ variables override it:
 
 | Variable | Default | Used by |
 | --- | --- | --- |
-| `CONDA_ENV` | `hf` | deploy.sh |
 | `TRITONSERVER_IMAGE` | `nvcr.io/nvidia/tritonserver:26.06-py3` | serve.sh |
 | `MODEL_REPOSITORY` | `<repo>/model_repository` | both |
 | `HTTP_PORT` / `GRPC_PORT` / `METRICS_PORT` | `8000` / `8001` / `8002` | serve.sh |

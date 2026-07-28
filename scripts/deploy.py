@@ -30,7 +30,6 @@ which can be mounted directly:
 from __future__ import annotations
 
 import argparse
-import errno
 import os
 import re
 import shutil
@@ -112,34 +111,13 @@ def resolve_venv(venv: str) -> Path:
 # --------------------------------------------------------------------------- copy
 
 
-def _link_or_copy(src: str, dst: str, *, follow_symlinks: bool = True) -> Any:
-    """Hardlink a file, falling back to a real copy across filesystems."""
-    try:
-        os.link(src, dst)
-    except OSError as exc:
-        if exc.errno not in (errno.EXDEV, errno.EMLINK, errno.EPERM, errno.EACCES):
-            raise
-        shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
-    return dst
-
-
-def copy_file(src: Path, dst: Path, mode: str) -> None:
+def copy_file(src: Path, dst: Path) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
-    if mode == "symlink":
-        dst.symlink_to(src.resolve())
-    elif mode == "link":
-        _link_or_copy(str(src), str(dst))
-    else:
-        shutil.copy2(src, dst)
+    shutil.copy2(src, dst)
 
 
-def copy_tree(src: Path, dst: Path, mode: str) -> None:
-    if mode == "symlink":
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.symlink_to(src.resolve(), target_is_directory=True)
-        return
-    copy_function = _link_or_copy if mode == "link" else shutil.copy2
-    shutil.copytree(src, dst, ignore=IGNORE_PATTERNS, copy_function=copy_function)
+def copy_tree(src: Path, dst: Path) -> None:
+    shutil.copytree(src, dst, ignore=IGNORE_PATTERNS)
 
 
 # --------------------------------------------------------------------------- render
@@ -200,7 +178,7 @@ def venv_destination(rendered_config: str, model_dir: Path) -> tuple[Path | None
 # --------------------------------------------------------------------------- main
 
 
-def deploy(spec_path: Path, model_repository: Path, copy_mode: str, force: bool) -> Path:
+def deploy(spec_path: Path, model_repository: Path, force: bool) -> Path:
     spec = load_spec(spec_path)
 
     model_name = str(spec["model_name"])
@@ -247,7 +225,7 @@ def deploy(spec_path: Path, model_repository: Path, copy_mode: str, force: bool)
         if entry.name in ("__pycache__",) or entry.suffix == ".pyc":
             continue
         if entry.is_dir():
-            copy_tree(entry, version_dir / entry.name, "copy")
+            copy_tree(entry, version_dir / entry.name)
         else:
             shutil.copy2(entry, version_dir / entry.name)
 
@@ -258,8 +236,8 @@ def deploy(spec_path: Path, model_repository: Path, copy_mode: str, force: bool)
 
     # 3. weights -> <model>/<version>/model/
     weight_dst = version_dir / WEIGHT_DIR_NAME
-    log(f"weights {weight_dir} -> {weight_dst} ({copy_mode})")
-    copy_tree(weight_dir, weight_dst, copy_mode)
+    log(f"weights {weight_dir} -> {weight_dst}")
+    copy_tree(weight_dir, weight_dst)
 
     # 4. venv tarball -> wherever EXECUTION_ENV_PATH points
     if venv_path is not None:
@@ -267,8 +245,8 @@ def deploy(spec_path: Path, model_repository: Path, copy_mode: str, force: bool)
         if note:
             log(f"WARNING {note}")
         if destination is not None:
-            log(f"venv    {venv_path} -> {destination} ({copy_mode})")
-            copy_file(venv_path, destination, copy_mode)
+            log(f"venv    {venv_path} -> {destination}")
+            copy_file(venv_path, destination)
     else:
         _, note = venv_destination(rendered, model_dir)
         if note is None:
@@ -282,10 +260,6 @@ def main() -> None:
     parser.add_argument("spec", nargs="+", type=Path, help="deployment yaml file(s)")
     parser.add_argument("--model-repository", type=Path, default=DEFAULT_MODEL_REPOSITORY,
                         help=f"output model repository (default: {DEFAULT_MODEL_REPOSITORY})")
-    parser.add_argument("--copy-mode", choices=("link", "copy", "symlink"), default="link",
-                        help="how to place weights/venv: hardlink (default, falls back to copy), "
-                             "full copy, or symlink (only works if the repository is mounted with "
-                             "the link targets visible inside the container)")
     parser.add_argument("--force", action="store_true", help="replace an existing model directory")
     args = parser.parse_args()
 
@@ -296,7 +270,7 @@ def main() -> None:
     try:
         for spec_path in args.spec:
             log(f"=== {spec_path}")
-            deployed.append(deploy(spec_path, model_repository, args.copy_mode, args.force))
+            deployed.append(deploy(spec_path, model_repository, args.force))
     except DeployError as exc:
         print(f"[deploy] ERROR {exc}", file=sys.stderr)
         raise SystemExit(1)

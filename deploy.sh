@@ -2,7 +2,9 @@
 # Stage deployment spec(s) into model_repository/ for tritonserver.
 #
 # Usage:
-#   ./deploy.sh deployments/example.yaml [more.yaml ...] [--force] [--copy-mode link|copy|symlink]
+#   ./deploy.sh deployments/example.yaml [more.yaml ...] [--force]
+#
+# Runs with whatever python environment is currently active (needs pyyaml + jinja2).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,16 +12,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 [ -f "${REPO_ROOT}/.env" ] && source "${REPO_ROOT}/.env"
 
-CONDA_ENV="${CONDA_ENV:-hf}"
-
 if [ "$#" -eq 0 ]; then
-    echo "usage: $0 <deployment.yaml> [...] [--force] [--copy-mode link|copy|symlink]" >&2
+    echo "usage: $0 <deployment.yaml> [...] [--force]" >&2
     exit 1
 fi
-
-# shellcheck disable=SC1091
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate "${CONDA_ENV}"
 
 REPO_ARGS=()
 if [ -n "${MODEL_REPOSITORY:-}" ]; then
