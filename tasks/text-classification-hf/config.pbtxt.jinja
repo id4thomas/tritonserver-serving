@@ -24,6 +24,12 @@ output [
   }
 ]
 
+# VENV
+parameters: {
+  key: "EXECUTION_ENV_PATH"
+  value: { string_value: "$$TRITON_MODEL_DIRECTORY/venv.tar.gz" }
+}
+
 # Model Parameters
 ## Tokenizer Parameters
 parameters: {

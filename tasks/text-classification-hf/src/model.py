@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import time
 from typing import Any, TypedDict
 
 import numpy as np
@@ -23,15 +24,21 @@ class TritonPythonModel:
         
         # Read from config.pbtxt
         weight_dir = str(Path(__file__).resolve().parent / "model")
-        params = json.loads(args["model_config"])
-        
+        model_config = json.loads(args["model_config"])
+        params = model_config.get("parameters", {})
+
+        def get_param(name: str, default_value: Any) -> str:
+            """Read a `parameters` entry from config.pbtxt"""
+            param = params.get(name, {"string_value": str(default_value)})
+            return param["string_value"]
+
         self.logger.log_info(f"Loading {weight_dir} with params {params}")
-        
+
         # Tokenizer
         ## Init tokenizer params
-        self.tokenizer_max_length = int(params.get("TOKENIZER_MAX_LENGTH", "256"))
-        tokenizer_padding_side = params.get("TOKENIZER_PADDING_SIDE", "right")
-        tokenizer_additional_params = params.get("TOKENIZER_ADDITIONAL_PARAMS", "{}")
+        self.tokenizer_max_length = int(get_param("TOKENIZER_MAX_LENGTH", "256"))
+        tokenizer_padding_side = get_param("TOKENIZER_PADDING_SIDE", "right")
+        tokenizer_additional_params = get_param("TOKENIZER_ADDITIONAL_PARAMS", "{}")
         tokenizer_additional_params = json.loads(tokenizer_additional_params)
         
         
@@ -47,11 +54,11 @@ class TritonPythonModel:
         # Model
         model_kwargs: dict[str, Any] = dict()
         ## Init model params
-        model_attn_implementation = params.get("MODEL_ATTN_IMPLEMENTATION", "none")
+        model_attn_implementation = get_param("MODEL_ATTN_IMPLEMENTATION", "none")
         if model_attn_implementation!="none":
             model_kwargs["attn_implementation"]=model_attn_implementation
-             
-        model_additional_params = params.get("MODEL_ADDITIONAL_PARAMS", "{}")
+
+        model_additional_params = get_param("MODEL_ADDITIONAL_PARAMS", "{}")
         model_additional_params = json.loads(model_additional_params)
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -63,9 +70,14 @@ class TritonPythonModel:
             **model_additional_params
         ).to(self.device)
         self.model.eval()
-        
+
+        ## Models without a pad token of their own (e.g. decoder-based classifiers) reject
+        ## batched input unless the pad id is set on the config as well as the tokenizer
+        if self.model.config.pad_token_id is None:
+            self.model.config.pad_token_id = self.tokenizer.pad_token_id
+
         ## Additional Params
-        self.inference_batch_size = int(params.get("INFERENCE_BATCH_SIZE", "16"))
+        self.inference_batch_size = int(get_param("INFERENCE_BATCH_SIZE", "16"))
         
     def _parse_request(self, request: pb_utils.InferenceRequest) -> list[str]:
         """Read texts (list[str]) from request"""
@@ -126,9 +138,15 @@ class TritonPythonModel:
     def execute(self, requests: list[pb_utils.InferenceRequest]) -> list[pb_utils.InferenceResponse]:
         # Parse Requests
         texts, indices = self._parse_requests(requests)
-
+        self.logger.log_info(f"Received {len(requests)} requests with {len(texts)} texts")
+        
         # Inference
+        start = time.time()
         predictions = self._predict(texts)
+        end = time.time()
+        
+        duration_ms = (end - start) * 1000
+        self.logger.log_info(f"Inference complete in {duration_ms:.2f}ms")
 
         labels = np.array([p["label"] for p in predictions], dtype=np.int32)
         scores = np.array([p["scores"] for p in predictions], dtype=np.float32)
