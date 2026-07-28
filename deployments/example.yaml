@@ -1,0 +1,12 @@
+model_name: example
+task: text-classification-hf
+weight_dir: /home/yrlab/git/tritonserver-serving/model/weights/clf-qwen3
+venv: vllm-v0_26_0.tar
+config:
+  max_batch_size: 256
+  param_tokenizer_max_length: '1024'
+  param_tokenizer_padding_side: 'right'
+  param_tokenizer_additional_params: '{}'
+  param_model_attn_implementation: 'none'
+  param_model_additional_params: '{}'
+  param_inference_batch_size: '32'

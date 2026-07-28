@@ -1,2 +1,63 @@
 # tritonserver-serving
 Model serving test with tritonserver
+
+## Repository Structure
+- [tasks](./tasks): model inference code (`model.py`) & config (`config.pbtxt`) template
+- [venv-builder](./venv-builder/): conda-pack venv tar file builder (to be injected as runtime python env)
+
+## Usage
+Describe a deployment in [deployments](./deployments), stage it into `model_repository/`, then serve it.
+
+```yaml
+# deployments/example.yaml
+model_name: example                 # triton model name & directory name
+task: text-classification-hf        # tasks/<task>
+weight_dir: model/weights/clf-qwen3 # absolute, or relative to the repo root
+venv: vllm-v0_26_0.tar.gz           # venv-builder/envs/<venv>, or a path
+version: 1                          # optional (default 1)
+config:                             # config.pbtxt.jinja template variables
+  max_batch_size: 256
+```
+
+```bash
+./deploy.sh deployments/example.yaml [--force] [--copy-mode link|copy|symlink]
+./serve.sh deployments/example.yaml   # or: ./serve.sh example  /  ./serve.sh (all staged models)
+```
+
+`deploy.sh` produces a directly mountable repository:
+
+```
+model_repository/example/
+├── config.pbtxt   # rendered from tasks/<task>/config.pbtxt.jinja
+├── venv.tar.gz    # placed at the path EXECUTION_ENV_PATH points to
+└── 1/
+    ├── model.py   # copied from tasks/<task>/src/
+    └── model/     # copied from weight_dir
+```
+
+Weights and the venv tarball are hardlinked by default (`--copy-mode link`, falls back to a real
+copy across filesystems); use `--copy-mode copy` for an independent copy.
+
+`serve.sh` mounts `model_repository/` at `/models` **read-only**. tritonserver runs as root in the
+container, so a writable mount leaves root-owned files (`__pycache__`) in the host tree; the
+python backend unpacks `EXECUTION_ENV_PATH` into `/tmp` inside the container and never needs to
+write to `/models`. `PYTHONDONTWRITEBYTECODE=1` is set as well.
+
+Both scripts read settings from `.env` (see [.env.example](./.env.example)); environment
+variables override it:
+
+| Variable | Default | Used by |
+| --- | --- | --- |
+| `CONDA_ENV` | `hf` | deploy.sh |
+| `TRITONSERVER_IMAGE` | `nvcr.io/nvidia/tritonserver:26.06-py3` | serve.sh |
+| `MODEL_REPOSITORY` | `<repo>/model_repository` | both |
+| `HTTP_PORT` / `GRPC_PORT` / `METRICS_PORT` | `8000` / `8001` / `8002` | serve.sh |
+| `GPUS` / `SHM_SIZE` | `all` / `8g` | serve.sh |
+
+
+## Tasks
+Supported tasks
+
+| Task | Description |
+| --- | --- |
+| [text-classification-hf](./tasks/text-classification-hf) | Transformers `AutoModelForSequenceClassification` based text classification model |

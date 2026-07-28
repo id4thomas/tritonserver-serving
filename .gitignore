@@ -1,6 +1,8 @@
 .claude/
 model/
+model_repository/
 
 .DS_Store
 __pycache__
 *.pyc
+.env
