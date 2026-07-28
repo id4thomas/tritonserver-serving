@@ -1,0 +1,5 @@
+torch==2.11.0
+torchaudio==2.11.0
+torchvision==0.26.0
+psutil
+--extra-index-url https://download.pytorch.org/whl/cu130
