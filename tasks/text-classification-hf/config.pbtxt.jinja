@@ -1,0 +1,56 @@
+name: "{{ model_name }}"
+backend: "python"
+max_batch_size: {{ max_batch_size | default(256) }}
+dynamic_batching { }
+
+version_policy: { specific: { versions: [1]}}
+input [
+  {
+    name: "text"
+    data_type: TYPE_STRING
+    dims: [ -1 ] 
+  }
+]
+output [
+  {
+    name: "label"
+    data_type: TYPE_INT32
+    dims: [ -1 ]
+  },
+  {
+    name: "scores"
+    data_type: TYPE_FP32
+    dims: [ -1, -1 ]
+  }
+]
+
+# Model Parameters
+## Tokenizer Parameters
+parameters: {
+  key: "TOKENIZER_MAX_LENGTH",
+  value: { string_value: "{{ param_tokenizer_max_length | default('512') }}" }
+}
+parameters: {
+  key: "TOKENIZER_PADDING_SIDE",
+  value: { string_value: "{{ param_tokenizer_padding_side | default('right') }}" }
+}
+parameters: {
+  key: "TOKENIZER_ADDITIONAL_PARAMS",
+  value: { string_value: "{{ param_tokenizer_additional_params | default('{}') }}" }
+}
+
+## Model Parameters
+parameters: {
+  key: "MODEL_ATTN_IMPLEMENTATION",
+  value: { string_value: "{{ param_model_attn_implementation | default('none') }}" }
+}
+parameters: {
+  key: "MODEL_ADDITIONAL_PARAMS",
+  value: { string_value: "{{ param_model_additional_params | default('{}') }}" }
+}
+
+## Inference Parameters
+parameters: {
+  key: "INFERENCE_BATCH_SIZE",
+  value: { string_value: "{{ param_inference_batch_size | default('16') }}" }
+}
