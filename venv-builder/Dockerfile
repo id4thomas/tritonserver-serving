@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/tritonserver:26.01-py3-sdk
+FROM nvcr.io/nvidia/tritonserver:26.06-py3-sdk
 
 # Prevent user-site packages from leaking into the environment
 ENV PYTHONNOUSERSITE=True
