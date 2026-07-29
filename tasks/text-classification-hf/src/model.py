@@ -41,7 +41,6 @@ class TritonPythonModel:
         tokenizer_additional_params = get_param("TOKENIZER_ADDITIONAL_PARAMS", "{}")
         tokenizer_additional_params = json.loads(tokenizer_additional_params)
         
-        
         ## Load Tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(
             weight_dir,

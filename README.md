@@ -5,6 +5,15 @@ Model serving test with tritonserver
 - [tasks](./tasks): model inference code (`model.py`) & config (`config.pbtxt`) template
 - [venv-builder](./venv-builder/): conda-pack venv tar file builder (to be injected as runtime python env)
 
+## Supported Tasks
+Supported model inference tasks
+
+| Task | Description |
+| --- | --- |
+| [text-classification-hf](./tasks/text-classification-hf) | Transformers `AutoModelForSequenceClassification` based text classification model |
+| [text-classification-vllm](./tasks/text-classification-vllm) | vLLM pooling engine `classify` task based text classification model ([reference](https://docs.vllm.ai/en/stable/models/pooling_models/#llmclassify)) |
+| [span-detection-hf](./tasks/span-detection-hf) | Transformers `AutoModelForTokenClassification` based text BIO span tagging model |
+
 ## Usage
 Describe a deployment in [deployments](./deployments), stage it into `model_repository/`, then serve it.
 
@@ -55,11 +64,3 @@ variables override it:
 | `MODEL_REPOSITORY` | `<repo>/model_repository` | both |
 | `HTTP_PORT` / `GRPC_PORT` / `METRICS_PORT` | `8000` / `8001` / `8002` | serve.sh |
 | `GPUS` / `SHM_SIZE` | `all` / `8g` | serve.sh |
-
-
-## Tasks
-Supported tasks
-
-| Task | Description |
-| --- | --- |
-| [text-classification-hf](./tasks/text-classification-hf) | Transformers `AutoModelForSequenceClassification` based text classification model |

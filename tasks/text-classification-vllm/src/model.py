@@ -38,41 +38,48 @@ class TritonPythonModel:
 
         # Tokenizer
         ## Init tokenizer params
+        self.tokenizer_max_length = int(get_param("TOKENIZER_MAX_LENGTH", "256"))
+        self.vllm_max_model_len = self.tokenizer_max_length
         tokenizer_padding_side = get_param("TOKENIZER_PADDING_SIDE", "right")
-
+        tokenizer_additional_params = get_param("TOKENIZER_ADDITIONAL_PARAMS", "{}")
+        tokenizer_additional_params = json.loads(tokenizer_additional_params)
+        
+        # Apply max model len truncation offset
+        max_length_truncation_offset = int(get_param("TOKENIZER_MAX_LENGTH_TRUNCATION_OFFSET", "16"))
+        if max_length_truncation_offset > self.tokenizer_max_length:
+            raise ValueError(
+                f"TOKENIZER_MAX_LENGTH_TRUNCATION_OFFSET must be smaller than TOKENIZER_MAX_LENGTH "
+                f"({max_length_truncation_offset}>{self.tokenizer_max_length})"
+            )
+        self.tokenizer_max_length -= max_length_truncation_offset
+        
         ## Load Tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(
             weight_dir,
-            padding_side=tokenizer_padding_side
+            padding_side=tokenizer_padding_side,
+            **tokenizer_additional_params
         )
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        # Model
-        ## Init engine params
-        self.max_model_len = int(get_param("VLLM_MAX_MODEL_LEN", "512"))
-
-        ## Inputs are truncated below max_model_len to keep the engine from hanging
-        max_model_len_truncation_offset = int(get_param("VLLM_MAX_MODEL_LEN_TRUNCATION_OFFSET", "16"))
-        if max_model_len_truncation_offset > self.max_model_len:
-            raise ValueError(
-                f"VLLM_MAX_MODEL_LEN_OFFSET must be smaller than VLLM_MAX_MODEL_LEN "
-                f"({max_model_len_truncation_offset}>{self.max_model_len})"
-            )
-        self.tokenizer_max_length = self.max_model_len - max_model_len_truncation_offset
-
-        engine_additional_params = json.loads(get_param("VLLM_ADDITIONAL_OPTIONS", "{}"))
-        engine_kwargs: dict[str, Any] = {
-            "max_model_len": self.max_model_len,
-            "dtype": get_param("VLLM_DTYPE", "auto"),
-            "gpu_memory_utilization": float(get_param("VLLM_GPU_MEMORY_UTILIZATION", "0.9")),
-            "max_num_seqs": int(get_param("VLLM_MAX_NUM_SEQS", "8")),
+            
+        # vLLM engine
+        ## Init vllm params
+        vllm_gpu_util =  float(get_param("VLLM_GPU_MEMORY_UTILIZATION", "0.9"))
+        vllm_max_num_seqs = int(get_param("VLLM_MAX_NUM_SEQS", "8"))
+        vllm_dtype = get_param("VLLM_DTYPE", "auto")
+        
+        vllm_additional_params = json.loads(get_param("VLLM_ADDITIONAL_OPTIONS", "{}"))
+        vllm_kwargs: dict[str, Any] = {
+            "max_model_len": self.vllm_max_model_len,
+            "dtype": vllm_dtype,
+            "gpu_memory_utilization": vllm_gpu_util,
+            "max_num_seqs": vllm_max_num_seqs,
             "runner": "pooling",
-            **engine_additional_params
+            **vllm_additional_params
         }
-
-        ## Load Model
-        self.model = LLM(model=weight_dir, tokenizer=weight_dir, **engine_kwargs)
+        
+        ## Load Engine
+        self.model = LLM(model=weight_dir, tokenizer=weight_dir, **vllm_kwargs)
 
     def _parse_request(self, request: pb_utils.InferenceRequest) -> list[str]:
         """Read texts (list[str]) from request"""
@@ -109,7 +116,7 @@ class TritonPythonModel:
 
     def _infer(self, texts: list[str]) -> np.ndarray:
         """Predict scores"""
-        outputs = self.model.classify(texts)
+        outputs = self.model.classify(texts, use_tqdm=False)
         scores: np.ndarray = np.array([output.outputs.probs for output in outputs], dtype=np.float32)
         return scores
 

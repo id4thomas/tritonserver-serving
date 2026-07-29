@@ -32,14 +32,25 @@ parameters: {
 
 
 # Model Parameters
+## Tokenizer Parameters
 parameters: {
-  key: "VLLM_MAX_MODEL_LEN",
-  value: { string_value: "{{ param_vllm_max_model_len | default('512') }}" }
+  key: "TOKENIZER_MAX_LENGTH",
+  value: { string_value: "{{ param_tokenizer_max_length | default('512') }}" }
 }
 parameters: {
-  key: "VLLM_MAX_MODEL_LEN_TRUNCATION_OFFSET",
-  value: { string_value: "{{ param_vllm_max_model_len_truncation_offset | default('16') }}" }
+  key: "TOKENIZER_PADDING_SIDE",
+  value: { string_value: "{{ param_tokenizer_padding_side | default('right') }}" }
 }
+parameters: {
+  key: "TOKENIZER_ADDITIONAL_PARAMS",
+  value: { string_value: "{{ param_tokenizer_additional_params | default('{}') }}" }
+}
+parameters: {
+  key: "TOKENIZER_MAX_LENGTH_TRUNCATION_OFFSET",
+  value: { string_value: "{{ param_tokenizer_max_length_truncation_offset | default('16') }}" }
+}
+
+## VLLM Parameters
 parameters: {
   key: "VLLM_MAX_NUM_SEQS",
   value: { string_value: "{{ param_vllm_max_num_seqs | default('8') }}" }
@@ -56,8 +67,3 @@ parameters: {
   key: "VLLM_ADDITIONAL_OPTIONS",
   value: { string_value: "{{ param_vllm_additional_options | default('{}') }}" }
 }
-parameters: {
-  key: "TOKENIZER_PADDING_SIDE",
-  value: { string_value: "{{ param_tokenizer_padding_side | default('right') }}" }
-}
-
