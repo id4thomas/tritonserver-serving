@@ -13,6 +13,7 @@ Supported model inference tasks
 | [text-classification-hf](./tasks/text-classification-hf) | Transformers `AutoModelForSequenceClassification` based text classification model |
 | [text-classification-vllm](./tasks/text-classification-vllm) | vLLM pooling engine `classify` task based text classification model ([reference](https://docs.vllm.ai/en/stable/models/pooling_models/#llmclassify)) |
 | [span-detection-hf](./tasks/span-detection-hf) | Transformers `AutoModelForTokenClassification` based text BIO span tagging model |
+| [span-detection-vllm](./tasks/span-detection-vllm) | vLLM pooling engine `token_clasify` based text BIO span tagging model |
 
 ## Usage
 Describe a deployment in [deployments](./deployments), stage it into `model_repository/`, then serve it.
