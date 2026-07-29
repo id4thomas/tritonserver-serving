@@ -1,0 +1,74 @@
+name: "{{ model_name }}"
+backend: "python"
+max_batch_size: {{ max_batch_size | default(256) }}
+dynamic_batching { }
+
+version_policy: { specific: { versions: [1]}}
+input [
+  {
+    name: "text"
+    data_type: TYPE_STRING
+    dims: [ -1 ]
+  }
+]
+output [
+  {
+    name: "spans"
+    data_type: TYPE_STRING
+    dims: [ -1 ]
+  },
+  {
+    name: "predictions"
+    data_type: TYPE_STRING
+    dims: [ -1 ]
+  }
+]
+
+# VENV
+parameters: {
+  key: "EXECUTION_ENV_PATH"
+  value: { string_value: "$$TRITON_MODEL_DIRECTORY/venv.tar.gz" }
+}
+
+# Model Parameters
+## Tokenizer Parameters
+parameters: {
+  key: "TOKENIZER_MAX_LENGTH",
+  value: { string_value: "{{ param_tokenizer_max_length | default('512') }}" }
+}
+parameters: {
+  key: "TOKENIZER_PADDING_SIDE",
+  value: { string_value: "{{ param_tokenizer_padding_side | default('right') }}" }
+}
+parameters: {
+  key: "TOKENIZER_ADDITIONAL_PARAMS",
+  value: { string_value: "{{ param_tokenizer_additional_params | default('{}') }}" }
+}
+
+## Model Parameters
+parameters: {
+  key: "MODEL_ATTN_IMPLEMENTATION",
+  value: { string_value: "{{ param_model_attn_implementation | default('sdpa') }}" }
+}
+parameters: {
+  key: "MODEL_USE_FP16",
+  value: { string_value: "{{ param_model_use_fp16 | default('false') }}" }
+}
+parameters: {
+  key: "MODEL_USE_BF16",
+  value: { string_value: "{{ param_model_use_bf16 | default('true') }}" }
+}
+parameters: {
+  key: "MODEL_USE_TORCH_COMPILE",
+  value: { string_value: "{{ param_model_use_torch_compile | default('false') }}" }
+}
+parameters: {
+  key: "MODEL_ADDITIONAL_PARAMS",
+  value: { string_value: "{{ param_model_additional_params | default('{}') }}" }
+}
+
+## Inference Parameters
+parameters: {
+  key: "INFERENCE_BATCH_SIZE",
+  value: { string_value: "{{ param_inference_batch_size | default('16') }}" }
+}
