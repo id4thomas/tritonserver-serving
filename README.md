@@ -14,6 +14,7 @@ Supported model inference tasks
 | [text-classification-vllm](./tasks/text-classification-vllm) | vLLM pooling engine `classify` task based text classification model ([reference](https://docs.vllm.ai/en/stable/models/pooling_models/#llmclassify)) |
 | [span-detection-hf](./tasks/span-detection-hf) | Transformers `AutoModelForTokenClassification` based text BIO span tagging model |
 | [span-detection-vllm](./tasks/span-detection-vllm) | vLLM pooling engine `token_clasify` based text BIO span tagging model |
+| [pp-doclayout-v3](./tasks/pp-doclayout-v3) | PaddlePaddle DocLayout-v3 document layout analysis inference code ([PaddlePaddle/PP-DocLayoutV3_safetensors](https://huggingface.co/PaddlePaddle/PP-DocLayoutV3_safetensors)) |
 
 ## Usage
 Describe a deployment in [deployments](./deployments), stage it into `model_repository/`, then serve it.
