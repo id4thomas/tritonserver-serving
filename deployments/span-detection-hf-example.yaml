@@ -1,0 +1,14 @@
+model_name: span-detection-hf-example
+task: span-detection-hf
+weight_dir: /home/yrlab/git/ko-pii-detector/output/tokenclf-ax-encoder-run6/best
+venv: vllm-v0_26_0.tar
+config:
+  max_batch_size: 256
+  param_tokenizer_max_length: '1024'
+  param_tokenizer_max_length_truncation_offset: '16'
+  param_tokenizer_padding_side: 'right'
+  param_tokenizer_additional_params: '{}'
+  param_vllm_max_num_seqs: '16'
+  param_vllm_dtype: 'auto'
+  param_vllm_gpu_memory_utilization: '0.1'
+  param_vllm_additional_options: '{}'
