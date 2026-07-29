@@ -1,0 +1,7 @@
+model_name: pp-doclayout-v3
+task: pp-doclayout-v3
+weight_dir: /home/yrlab/models/docparse/weights/PP-DocLayoutV3_safetensors
+venv: vllm-v0_26_0.tar
+config:
+  max_batch_size: 256
+  param_doclayout_threshold: '0.5'
